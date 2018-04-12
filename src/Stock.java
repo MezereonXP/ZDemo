@@ -7,6 +7,7 @@ public class Stock {
     private String id;
     private String name;
     private ArrayList<Double> M;
+    private int isMentioned = 0;
 
     public Stock(String id, String name) {
         this.id = id;
@@ -36,5 +37,13 @@ public class Stock {
 
     public void setM(ArrayList<Double> m) {
         M = m;
+    }
+
+    public int getIsMentioned() {
+        return isMentioned;
+    }
+
+    public void setIsMentioned(int isMentioned) {
+        this.isMentioned = isMentioned;
     }
 }

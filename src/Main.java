@@ -4,6 +4,7 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Iterator;
 
 public class Main {
 
@@ -14,23 +15,68 @@ public class Main {
         double[] N = readN();
         //初始化基金的数据
         ArrayList<Fund> funds = readFund();
+        //初始化w的数据
         ArrayList<StockWithFund>[] pairs = readPairs(stocks);
-        System.out.println(pairs.length);
+
+
+        //遍历股票
+        for (Stock stock:stocks){
+
+            if (stock.getIsMentioned()==1) {
+                System.out.print(stock.getId() + "," + stock.getName() + ",");
+                //对于每一只股票计算36个季度的Z值
+                for (int t = 0; t < 36; t++) {
+                    double sum = 0;// 求和部分初始化
+                    for (int i = 0; i < funds.size(); i++) {
+                        String key = stock.getId() + "," + funds.get(i).getId();
+
+                        int pos = isExit(pairs[t], key);
+                        if (pos != -1)
+                            sum += funds.get(i).getX().get(t) * pairs[t].get(pos).getW();
+                    }
+                    double result = 0;
+
+                    if (stock.getM().get(t) != 0) {
+                        result = (sum * N[t]) / stock.getM().get(t);
+                    }
+                    if (t != 35)
+                        System.out.print(result + ",");
+                    else
+                        System.out.println(result);
+                }
+            }
+
+        }
 
     }
 
+    //查询某季度股票是否投资了相应的基金
+    private static int isExit(ArrayList<StockWithFund> pair, String key) {
+        int pos = 0;
+        for (StockWithFund stockWithFund:pair){
+            if (stockWithFund.getPair().equals(key)){
+               return pos;
+            }
+            pos++;
+        }
+        return -1;
+    }
+
     private static ArrayList<StockWithFund>[] readPairs(ArrayList<Stock> stocks) throws IOException {
-        XSSFWorkbook xwb = new XSSFWorkbook("G:\\workplace\\ZDemo\\Z\\W.xlsx");
+        XSSFWorkbook xwb = new XSSFWorkbook("./Z/W.xlsx");
         XSSFSheet sheet = xwb.getSheetAt(0);
         XSSFRow row;
         String cell;
         ArrayList<StockWithFund>[] data = new ArrayList[36];
         for (int i = sheet.getFirstRowNum() + 1; i < sheet.getPhysicalNumberOfRows(); i++) {
             row = sheet.getRow(i);
+            if (i == 1608){
+                break;
+            }
             if (row == null) {
                 break;
             }
-            String pair = row.getCell(0).toString() + ",";
+            String pair = "," + row.getCell(0).toString();
             for (int index = 0; index < 36; index++) {
                 if (i == (sheet.getFirstRowNum() + 1))
                     data[index] = new ArrayList<>();
@@ -38,9 +84,8 @@ public class Main {
                     cell = row.getCell(j).toString();
                     if (!cell.isEmpty() && !cell.equals("--")) {
                         String stockName = find(stocks, cell);
-                        pair = pair + stockName;
-                        System.out.println(index+", "+j);
-                        StockWithFund t = new StockWithFund(pair, index, Double.parseDouble(row.getCell(j+1).toString()));
+//                        System.out.println(i+", "+index+", "+j);
+                        StockWithFund t = new StockWithFund(stockName + pair, index, Double.parseDouble(row.getCell(j+1).toString()));
                         data[index].add(t);
                     }
                 }
@@ -52,6 +97,9 @@ public class Main {
     private static String find(ArrayList<Stock> stocks, String cell) {
         for (Stock stock:stocks){
             if (stock.getName().equals(cell)){
+                if (stock.getIsMentioned()==0){
+                    stock.setIsMentioned(1);
+                }
                 return stock.getId();
             }
         }
@@ -59,7 +107,7 @@ public class Main {
     }
 
     private static ArrayList<Fund> readFund() throws IOException {
-        XSSFWorkbook xwb = new XSSFWorkbook("G:\\workplace\\ZDemo\\Z\\X.xlsx");
+        XSSFWorkbook xwb = new XSSFWorkbook("./Z/X.xlsx");
         XSSFSheet sheet = xwb.getSheetAt(0);
         XSSFRow row;
         String cell;
@@ -89,7 +137,7 @@ public class Main {
      * @throws IOException
      */
     public static ArrayList<Stock> readXlsx() throws IOException {
-        XSSFWorkbook xwb = new XSSFWorkbook("G:\\workplace\\ZDemo\\Z\\M.xlsx");
+        XSSFWorkbook xwb = new XSSFWorkbook("./Z/M.xlsx");
         XSSFSheet sheet = xwb.getSheetAt(0);
         XSSFRow row;
         String cell;
@@ -114,7 +162,7 @@ public class Main {
     }
 
     private static double[] readN() throws IOException {
-        XSSFWorkbook xwb = new XSSFWorkbook("G:\\workplace\\ZDemo\\Z\\N.xlsx");
+        XSSFWorkbook xwb = new XSSFWorkbook("./Z/N.xlsx");
         XSSFSheet sheet = xwb.getSheetAt(0);
         XSSFRow row;
         String cell;
